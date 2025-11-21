@@ -1,0 +1,144 @@
+/* =============================== */
+/*        GLOBAL HEADER BAR        */
+/* =============================== */
+.global-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #008563; /* BFMO green */
+  color: var(--text);
+  padding: 12px 28px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* SPA links should show pointer */
+.global-header__nav a {
+  cursor: pointer;
+}
+
+/* Better keyboard focus */
+.global-header__nav a:focus-visible,
+.global-header__theme-btn:focus-visible,
+.global-header__brand-link:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* =============================== */
+/*         BRAND SECTION           */
+/* =============================== */
+.global-header__brand {
+  display: flex;
+  align-items: center;
+}
+
+/* click area for logo + text */
+.global-header__brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+/* logo image */
+.global-header__logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+/* system name text */
+.global-header__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  margin: 0;
+}
+
+/* =============================== */
+/*           NAV LINKS             */
+/* =============================== */
+.global-header__nav {
+  display: flex;
+  gap: 22px;
+}
+
+.global-header__nav a {
+  text-decoration: none;
+  font-weight: 500;
+  color: var(--text-2);
+  transition: color 0.25s ease, transform 0.2s ease;
+}
+
+.global-header__nav a:hover {
+  color: var(--text);
+  transform: translateY(-2px);
+}
+
+.global-header__nav a.is-active {
+  color: var(--text);
+  border-bottom: 2px solid var(--outline-2);
+  padding-bottom: 2px;
+}
+
+/* Light mode links */
+.create-scope--light .global-header__nav a {
+  color: #334155;
+}
+.create-scope--light .global-header__nav a:hover {
+  color: #2563eb;
+}
+.create-scope--light .global-header__nav a.is-active {
+  color: #1d4ed8;
+  border-bottom-color: #2563eb;
+}
+
+/* =============================== */
+/*         ACTIONS AREA            */
+/* =============================== */
+.global-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.global-header__theme-btn {
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.global-header__theme-btn:hover {
+  background: rgba(0, 0, 0, 0.22);
+  transform: translateY(-1px);
+}
+
+/* =============================== */
+/*         RESPONSIVE DESIGN       */
+/* =============================== */
+@media (max-width: 768px) {
+  .global-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .global-header__nav {
+    width: 100%;
+    justify-content: center;
+    gap: 18px;
+  }
+
+  .global-header__actions {
+    margin-left: auto;
+  }
+}

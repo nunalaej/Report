@@ -1,0 +1,49 @@
+/* src/theme/tokens.css */
+:root {
+  --radius: 12px;
+  --brand: #008563; --brand-weak: #00a57a; --on-brand: #fff;
+
+  /* defaults (won’t be used once a data-theme is set) */
+  --bg:#0f172a; --surface:#111827; --surface-2:#0f172a;
+  --outline:#1f2937; --outline-2:#374151;
+  --text:#e5e7eb; --text-2:#cbd5e1; --muted:#94a3b8;
+
+  --button-bg: var(--brand);
+  --button-bg-hover: var(--brand-weak);
+  --button-text: var(--on-brand);
+}
+
+/* Light */
+:root[data-theme="light"]{
+  --bg:#f9fafb; --surface:#fff; --surface-2:#f9fafb;
+  --outline:#e5e7eb; --outline-2:#d1d5db;
+  --text:#0f172a; --text-2:#334155; --muted:#64748b;
+}
+
+/* Dark (your requested palette) */
+:root[data-theme="dark"]{
+  --bg:#121212; --surface:#352d2d; --surface-2:#343434;
+  --outline:#cbd5e1; --outline-2:#b6c0cf;
+  --text:#e1e1e1; --text-2:#334155; --muted:#64748b;
+}
+
+.logout-btn {
+  background: var(--button-bg);
+  color: linear-gradient;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
+  transition: all 0.25s ease;
+}
+
+/* Global base */
+html,body,#root{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}
+
+/* Common button helper (optional) */
+.btn{background:var(--button-bg);color:var(--button-text);border:1px solid transparent;border-radius:12px;
+  padding:10px 16px;font-weight:600;cursor:pointer;transition:transform .15s, background .2s}
+.btn:hover{transform:translateY(-1px);background:var(--button-bg-hover)}

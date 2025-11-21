@@ -1,0 +1,194 @@
+/* Remove default top gap */
+html, body, #root { height: 100%; }
+body { margin: 0; }
+
+/* THEME TOKENS (dark default) */
+.app-landing {
+/* Consume global tokens instead of redefining */
+--bg: var(--bg);
+--bg-2: var(--bg);
+--surface: var(--surface);
+--surface-2: var(--surface-2, var(--surface));
+--outline: var(--outline);
+--outline-2: var(--outline-2);
+--text: var(--text);
+--text-2: var(--text-2);
+--muted: var(--muted);
+
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 800px at 20% -10%, var(--accent-1), transparent 60%),
+    radial-gradient(1000px 700px at 120% 10%, var(--accent-2), transparent 55%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* LIGHT MODE OVERRIDES */
+.create-scope--light .app-landing {
+  --bg: #f6f8fb;
+  --bg-2: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f9fbff;
+  --outline: #e5e9f0;
+  --outline-2: #d8dee9;
+  --text: #0f172a;
+  --text-2: #334155;
+  --muted: #64748b;
+  --accent-1: rgba(80,200,120,0.16);
+  --accent-2: rgba(70,100,255,0.12);
+
+  background:
+    radial-gradient(1200px 800px at 20% -10%, var(--accent-1), transparent 60%),
+    radial-gradient(1000px 700px at 120% 10%, var(--accent-2), transparent 55%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+}
+
+/* DARK MODE — your card colors kept */
+:root[data-theme="dark"] .app-landing .tile-card {
+  background: #1e242d !;
+  border: 1px solid #2b3240;
+  color: #e2e8f0;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.25);
+  transition: transform .14s ease, box-shadow .18s ease, background .2s ease, border-color .2s ease;
+}
+:root[data-theme="dark"] .app-landing .tile-card:hover {
+  background: #2b3340;
+  color: #e5e9f0;
+  box-shadow: 0 18px 44px rgba(0,0,0,0.6);
+  transform: translateY(-4px);
+  filter: brightness(1.05);
+}
+
+/* Light mode cards kept */
+.create-scope--light .app-landing .tile-card {
+  background: #ffffff;
+  border: 1px solid #e5e9f0;
+  color: #ffff;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.15);
+}
+.create-scope--light .app-landing .tile-card:hover {
+  background: #f9fbff;
+  border-color: #cbd5e1;
+  box-shadow: 0 18px 48px rgba(0,0,0,0.22);
+}
+
+/* Layout spacing */
+.app-landing .content { padding: clamp(32px, 4vw, 56px) 0 72px; }
+
+/* Hero */
+.app-landing .hero { text-align: center; margin-bottom: 32px; }
+.app-landing .hero h1 {
+  font-size: clamp(1.9rem, 1.2rem + 2.2vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: .2px;
+  color: var(--text);
+  margin: 0;
+}
+.app-landing .hero .subtitle { color: var(--muted); margin-top: 6px; }
+
+/* Cards */
+.app-landing .tile-card {
+  background: var(--surface);
+  border: 1px solid var(--outline);
+  color: var(--text);
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(0,0,0,.24);
+  transition: transform .14s ease, box-shadow .18s ease, border-color .16s ease, background .16s ease;
+  overflow: hidden;
+}
+.app-landing .tile-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 44px rgba(0,0,0,.28);
+  border-color: #085248;
+  background: var(--surface-2);
+}
+.app-landing .tile-body { position: relative; padding: 20px 18px 18px; background-color: #085248; }
+.app-landing .tile-badge {
+  position: absolute; top: 14px; right: 14px; width: 8px; height: 8px; border-radius: 999px;
+  background: radial-gradient(8px 8px at 50% 50%, #6ee7b7, #22c55e);
+  filter: drop-shadow(0 0 8px #22c55e66);
+}
+.app-landing .tile-title { font-weight: 800; margin-bottom: 6px; letter-spacing: .2px; }
+.app-landing .tile-desc { color: var(--text-2); min-height: 56px; margin-bottom: 18px; line-height: 1.35; }
+
+/* Bottom quick actions */
+.app-landing .landing-actions {
+  margin-top: 28px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Make Bootstrap outline buttons theme-aware */
+.create-scope--light .btn-outline-light { color: #0f172a; }
+.create-scope--light .btn-outline-light:hover { background: #f1f5f9; }
+
+/* Mobile */
+@media (max-width: 576px) {
+  .app-landing .content { padding-bottom: 64px; }
+}
+
+/* ========================= */
+/*  Red Logout button only   */
+/*  From Uiverse, JSX ready  */
+/* ========================= */
+.Btn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 45px;
+  height: 45px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition-duration: .3s;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.199);
+  background-color: rgb(255, 65, 65); /* red only here */
+}
+
+.sign {
+  width: 100%;
+  transition-duration: .3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sign svg { width: 17px; }
+.sign svg path { fill: white; }
+
+.text {
+  position: absolute;
+  right: 0%;
+  width: 0%;
+  opacity: 0;
+  color: white;
+  font-size: 1.2em;
+  font-weight: 600;
+  transition-duration: .3s;
+}
+
+.Btn:hover {
+  width: 125px;
+  border-radius: 40px;
+  transition-duration: .3s;
+}
+
+.Btn:hover .sign {
+  width: 30%;
+  transition-duration: .3s;
+  padding-left: 20px;
+}
+
+.Btn:hover .text {
+  opacity: 1;
+  width: 70%;
+  transition-duration: .3s;
+  padding-right: 10px;
+}
+
+.Btn:active { transform: translate(2px, 2px); }
