@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Login.css";
 
+// Frontend will always call /api/... and Vite will proxy to 3000
+const API_BASE = "/api";
+
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || "/";
 
-  // Auto redirect if already logged in
   useEffect(() => {
     try {
       const raw = localStorage.getItem("currentUser");
@@ -15,16 +17,18 @@ export default function Login() {
       const user = JSON.parse(raw);
 
       if (user?.kind === "admin") {
-        navigate("/Admin", { replace: true }); // should render Admin/App.jsx
+        navigate("/Admin", { replace: true });
       } else if (user?.kind === "staff") {
-        navigate("/Staff", { replace: true }); // should render Staff/App_staff.jsx
+        navigate("/Staff", { replace: true });
       } else if (user?.kind === "user") {
         navigate("/create", { replace: true });
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
   }, [navigate]);
 
-  const [mode, setMode] = useState("otp"); // "otp" | "adminStaff"
+  const [mode, setMode] = useState("otp");
   const [light, setLight] = useState(false);
 
   const [msg, setMsg] = useState("");
@@ -35,7 +39,6 @@ export default function Login() {
     setMsg(text);
   };
 
-  // OTP state
   const [email, setEmail] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
@@ -44,7 +47,6 @@ export default function Login() {
   const [resendIn, setResendIn] = useState(0);
   const timerRef = useRef(null);
 
-  // Admin/Staff creds
   const [adminUser, setAdminUser] = useState("");
   const [adminPass, setAdminPass] = useState("");
   const [adminLoading, setAdminLoading] = useState(false);
@@ -59,14 +61,15 @@ export default function Login() {
     showMsg("info", "Sending code...");
 
     try {
-      const res = await fetch("http://localhost:3000/api/send-otp", {
+      const res = await fetch(`${API_BASE}/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: em }),
       });
-      const data = await res.json();
 
-      if (data.success) {
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.success) {
         setOtpSent(true);
         showMsg("success", "Code sent.");
         setResendIn(30);
@@ -82,10 +85,13 @@ export default function Login() {
           });
         }, 1000);
       } else {
-        showMsg("error", "Failed to send code.");
+        showMsg("error", data.message || "Failed to send code.");
       }
-    } catch {
-      showMsg("error", "Network error while sending code.");
+    } catch (err) {
+      showMsg(
+        "error",
+        "Network error while sending code. Check your backend URL."
+      );
     } finally {
       setSending(false);
     }
@@ -98,14 +104,15 @@ export default function Login() {
 
     setVerifying(true);
     try {
-      const res = await fetch("http://localhost:3000/api/verify-otp", {
+      const res = await fetch(`${API_BASE}/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: em, code }),
       });
-      const data = await res.json();
 
-      if (data.success) {
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.success) {
         localStorage.setItem(
           "currentUser",
           JSON.stringify({ kind: "user", email: em })
@@ -113,22 +120,22 @@ export default function Login() {
         const dest = from && from !== "/" ? from : "/create";
         navigate(dest, { replace: true });
       } else {
-        showMsg("error", "Invalid or expired code.");
+        showMsg("error", data.message || "Invalid or expired code.");
       }
     } catch {
-      showMsg("error", "Network error while verifying code.");
+      showMsg(
+        "error",
+        "Network error while verifying code. Check your backend URL."
+      );
     } finally {
       setVerifying(false);
     }
   };
 
-  // Auto verify when 6 digits entered
   useEffect(() => {
     if (otpSent && otp.length === 6 && !verifying) verifyOtp(otp);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [otp, otpSent]);
+  }, [otp, otpSent]); // eslint disabled if you have lint rule
 
-  // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -141,16 +148,13 @@ export default function Login() {
 
     setAdminLoading(true);
     try {
-      // Admin account
       if (adminUser === "admin" && adminPass === "admin") {
         localStorage.setItem(
           "currentUser",
           JSON.stringify({ kind: "admin", username: "admin" })
         );
         navigate("/Admin", { replace: true });
-      }
-      // Staff account
-      else if (
+      } else if (
         adminUser === "staff@dlsud.edu.ph" &&
         adminPass === "staff123"
       ) {
@@ -169,6 +173,7 @@ export default function Login() {
       setAdminLoading(false);
     }
   };
+
 
   return (
     <div className={`create-scope ${light ? "create-scope--light" : ""}`}>
@@ -340,7 +345,7 @@ export default function Login() {
                     <label>Admin or Staff Username</label>
                     <input
                       type="text"
-                      placeholder='admin or staff@dlsud.edu.ph'
+                      placeholder="admin or staff@dlsud.edu.ph"
                       value={adminUser}
                       onChange={(e) => setAdminUser(e.target.value)}
                     />
@@ -350,7 +355,7 @@ export default function Login() {
                     <label>Password</label>
                     <input
                       type="password"
-                      placeholder='admin or staff123'
+                      placeholder="admin or staff123"
                       value={adminPass}
                       onChange={(e) => setAdminPass(e.target.value)}
                     />

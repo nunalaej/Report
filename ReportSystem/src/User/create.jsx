@@ -87,7 +87,16 @@ const FALLBACK_CONCERNS = [
   },
 ];
 
-const META_URL = "http://localhost:3000/api/meta";
+// API base
+// - Dev: leave VITE_API_BASE_URL undefined and Vite proxy /api -> Node server
+// - Prod: set VITE_API_BASE_URL to your backend URL (no trailing slash)
+const API_BASE =
+  (import.meta.env.VITE_API_BASE_URL &&
+    import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")) ||
+  "";
+
+const META_URL = `${API_BASE}/api/meta`;
+const REPORTS_URL = `${API_BASE}/api/reports`;
 
 const collegeOptions = [
   "CICS",
@@ -226,7 +235,7 @@ export default function Create() {
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/reports");
+        const res = await fetch(REPORTS_URL);
         const data = await res.json();
 
         let list = [];
@@ -447,7 +456,7 @@ export default function Create() {
       Object.entries(formData).forEach(([k, v]) => {
         if (v) data.append(k, v);
       });
-      const res = await fetch("http://localhost:3000/api/reports", {
+      const res = await fetch(REPORTS_URL, {
         method: "POST",
         body: data,
       });

@@ -15,6 +15,13 @@ import {
 import Navigation from "../Navigation.jsx";
 import "./analytics.css";
 
+/* Backend base URL
+   Dev: uses Vite proxy with relative paths
+   Prod: set VITE_API_BASE_URL to your deployed backend URL (no trailing slash) */
+const API_BASE =
+  (import.meta.env.VITE_API_BASE_URL &&
+    import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")) || "";
+
 /* Helper to show Concern + Sub concern / Other concern */
 const formatConcernLabel = (report) => {
   const base = report.concern || "Unspecified";
@@ -35,11 +42,19 @@ export default function Analytics() {
     let alive = true;
     (async () => {
       try {
-        const res = await fetch("/api/reports");
+        setLoadErr("");
+        const res = await fetch(`${API_BASE}/api/reports`);
         if (!res.ok) throw new Error("Failed to fetch reports");
         const data = await res.json();
+
         if (!alive) return;
-        setReports(Array.isArray(data) ? data : []);
+
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data.reports)
+          ? data.reports
+          : [];
+        setReports(list);
       } catch (e) {
         console.error(e);
         if (!alive) return;
@@ -123,7 +138,7 @@ export default function Analytics() {
 
   const allColleges = useMemo(() => {
     const s = new Set();
-    reports.forEach((r) => r.college && s.add(r.college));
+    reports.forEach((r) => (r.college || "").trim() && s.add(r.college));
     return [...s].sort();
   }, [reports]);
 
@@ -255,18 +270,12 @@ export default function Analytics() {
       .sort((a, b) => b.value - a.value);
   }, []);
 
-  const buildingData = useMemo(
-    () => agg(filtered, "building"),
-    [filtered, agg]
-  );
+  const buildingData = useMemo(() => agg(filtered, "building"), [filtered, agg]);
   const concernData = useMemo(
     () => agg(filtered, formatConcernLabel),
     [filtered, agg]
   );
-  const collegeData = useMemo(
-    () => agg(filtered, "college"),
-    [filtered, agg]
-  );
+  const collegeData = useMemo(() => agg(filtered, "college"), [filtered, agg]);
 
   const total = filtered.length;
 
@@ -277,8 +286,7 @@ export default function Analytics() {
 
   const STORAGE_KEY = "todoLists_v1";
   const uid = useCallback(
-    () =>
-      Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+    () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
     []
   );
   const defaultLists = useCallback(
@@ -340,10 +348,7 @@ export default function Analytics() {
         l.id === listId
           ? {
               ...l,
-              tasks: [
-                ...l.tasks,
-                { id: uid(), text: text.trim(), done: false },
-              ],
+              tasks: [...l.tasks, { id: uid(), text: text.trim(), done: false }],
             }
           : l
       )
@@ -375,7 +380,7 @@ export default function Analytics() {
 
   const saveToServer = useCallback(async () => {
     try {
-      const res = await fetch("/api/lists/sync", {
+      const res = await fetch(`${API_BASE}/api/lists/sync`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lists }),
@@ -390,7 +395,7 @@ export default function Analytics() {
 
   const loadFromServer = useCallback(async () => {
     try {
-      const res = await fetch("/api/lists");
+      const res = await fetch(`${API_BASE}/api/lists`);
       if (!res.ok) throw new Error("Load failed");
       const data = await res.json();
       if (Array.isArray(data) && data.length) setLists(data);
