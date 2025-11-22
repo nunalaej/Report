@@ -8,8 +8,6 @@
   ],
   "routes": [
     { "src": "/api/send-otp", "dest": "/api/sendOtp.js" },
-    { "src": "/api/verify-otp", "dest": "/api/verifyOtp.js" },
-    { "src": "/api/reports", "dest": "/api/reports.js" },
-    { "src": "/api/meta", "dest": "/api/meta.js" }
+    { "src": "/api/verify-otp", "dest": "/api/verifyOtp.js" }
   ]
 }
