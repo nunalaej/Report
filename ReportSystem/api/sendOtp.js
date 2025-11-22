@@ -1,7 +1,7 @@
-// api/otp.js
+// api/sendOtp.js
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
-import OTP from '../models/OTP';
+import OTP from '../models/OTP'; // Make sure the model file exists
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -9,22 +9,21 @@ dotenv.config();
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT || 587),
-  secure: false,
-  requireTLS: true,
+  secure: false, // Set to true if using SSL
+  requireTLS: true, // Enforce TLS
   auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
 });
 
-export async function sendOTP(req, res) {
+export default async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).json({ success: false, message: 'Only POST requests are allowed' });
+
   const { email } = req.body;
   if (!email) {
     return res.status(400).json({ success: false, message: 'Email required' });
   }
 
   if (!email.endsWith('@dlsud.edu.ph')) {
-    return res.status(400).json({
-      success: false,
-      message: 'Only @dlsud.edu.ph emails are allowed',
-    });
+    return res.status(400).json({ success: false, message: 'Only @dlsud.edu.ph emails are allowed' });
   }
 
   try {
@@ -51,29 +50,4 @@ export async function sendOTP(req, res) {
     console.error('Send OTP error:', err);
     res.status(500).json({ success: false, message: 'Failed to send OTP' });
   }
-}
-
-export async function verifyOTP(req, res) {
-  const { email, code } = req.body;
-  if (!email || !code) {
-    return res.status(400).json({ success: false, message: 'Email and code required' });
-  }
-
-  try {
-    const record = await OTP.findOne({ email });
-    if (!record) {
-      return res.status(400).json({ success: false, message: 'OTP expired or invalid' });
-    }
-
-    const isValid = await bcrypt.compare(code, record.codeHash);
-    if (!isValid) {
-      return res.status(400).json({ success: false, message: 'OTP invalid' });
-    }
-
-    await OTP.deleteOne({ email });
-    res.json({ success: true, message: 'Email verified' });
-  } catch (err) {
-    console.error('Verify OTP error:', err);
-    res.status(500).json({ success: false, message: 'OTP verification failed' });
-  }
-}
+};

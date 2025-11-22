@@ -54,83 +54,84 @@ export default function Login() {
   const normEmail = () => (email || "").trim().toLowerCase();
 
   const sendOtp = async () => {
-    const em = normEmail();
-    if (!em) return showMsg("error", "Enter email first.");
+  const em = normEmail();
+  if (!em) return showMsg("error", "Enter email first.");
 
-    setSending(true);
-    showMsg("info", "Sending code...");
+  setSending(true);
+  showMsg("info", "Sending code...");
 
-    try {
-      const res = await fetch(`${API_BASE}/send-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: em }),
-      });
+  try {
+    const res = await fetch(`/api/send-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: em }),
+    });
 
-      const data = await res.json().catch(() => ({}));
+    const data = await res.json().catch(() => ({}));
 
-      if (res.ok && data.success) {
-        setOtpSent(true);
-        showMsg("success", "Code sent.");
-        setResendIn(30);
+    if (res.ok && data.success) {
+      setOtpSent(true);
+      showMsg("success", "Code sent.");
+      setResendIn(30);
 
-        if (timerRef.current) clearInterval(timerRef.current);
-        timerRef.current = setInterval(() => {
-          setResendIn((t) => {
-            if (t <= 1) {
-              clearInterval(timerRef.current);
-              return 0;
-            }
-            return t - 1;
-          });
-        }, 1000);
-      } else {
-        showMsg("error", data.message || "Failed to send code.");
-      }
-    } catch (err) {
-      showMsg(
-        "error",
-        "Network error while sending code. Check your backend URL."
-      );
-    } finally {
-      setSending(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setResendIn((t) => {
+          if (t <= 1) {
+            clearInterval(timerRef.current);
+            return 0;
+          }
+          return t - 1;
+        });
+      }, 1000);
+    } else {
+      showMsg("error", data.message || "Failed to send code.");
     }
-  };
+  } catch (err) {
+    showMsg(
+      "error",
+      "Network error while sending code. Check your backend URL."
+    );
+  } finally {
+    setSending(false);
+  }
+};
 
-  const verifyOtp = async (val) => {
-    const em = normEmail();
-    const code = String((val ?? otp ?? "").replace(/\D/g, ""));
-    if (code.length !== 6) return showMsg("error", "Enter 6 digits.");
+const verifyOtp = async (val) => {
+  const em = normEmail();
+  const code = String((val ?? otp ?? "").replace(/\D/g, ""));
+  if (code.length !== 6) return showMsg("error", "Enter 6 digits.");
 
-    setVerifying(true);
-    try {
-      const res = await fetch(`${API_BASE}/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: em, code }),
-      });
+  setVerifying(true);
+  try {
+    const res = await fetch(`/api/verify-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: em, code }),
+    });
 
-      const data = await res.json().catch(() => ({}));
+    const data = await res.json().catch(() => ({}));
 
-      if (res.ok && data.success) {
-        localStorage.setItem(
-          "currentUser",
-          JSON.stringify({ kind: "user", email: em })
-        );
-        const dest = from && from !== "/" ? from : "/create";
-        navigate(dest, { replace: true });
-      } else {
-        showMsg("error", data.message || "Invalid or expired code.");
-      }
-    } catch {
-      showMsg(
-        "error",
-        "Network error while verifying code. Check your backend URL."
+    if (res.ok && data.success) {
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify({ kind: "user", email: em })
       );
-    } finally {
-      setVerifying(false);
+      const dest = from && from !== "/" ? from : "/create";
+      navigate(dest, { replace: true });
+    } else {
+      showMsg("error", data.message || "Invalid or expired code.");
     }
-  };
+  } catch {
+    showMsg(
+      "error",
+      "Network error while verifying code. Check your backend URL."
+    );
+  } finally {
+    setVerifying(false);
+  }
+};
+
 
   useEffect(() => {
     if (otpSent && otp.length === 6 && !verifying) verifyOtp(otp);
