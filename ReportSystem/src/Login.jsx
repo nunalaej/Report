@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Login.css";
+import api from "./api"; // <-- ADD THIS
 
 export default function Login() {
   const navigate = useNavigate();
@@ -59,12 +60,7 @@ export default function Login() {
     showMsg("info", "Sending code...");
 
     try {
-      const res = await fetch("http://localhost:3000/api/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: em }),
-      });
-      const data = await res.json();
+      const data = await api.post("/api/send-otp", { email: em });
 
       if (data.success) {
         setOtpSent(true);
@@ -82,10 +78,11 @@ export default function Login() {
           });
         }, 1000);
       } else {
-        showMsg("error", "Failed to send code.");
+        showMsg("error", data.message || "Failed to send code.");
       }
-    } catch {
-      showMsg("error", "Network error while sending code.");
+    } catch (err) {
+      console.error(err);
+      showMsg("error", err.message || "Network error while sending code.");
     } finally {
       setSending(false);
     }
@@ -98,12 +95,7 @@ export default function Login() {
 
     setVerifying(true);
     try {
-      const res = await fetch("http://localhost:3000/api/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: em, code }),
-      });
-      const data = await res.json();
+      const data = await api.post("/api/verify-otp", { email: em, code });
 
       if (data.success) {
         localStorage.setItem(
@@ -113,10 +105,11 @@ export default function Login() {
         const dest = from && from !== "/" ? from : "/create";
         navigate(dest, { replace: true });
       } else {
-        showMsg("error", "Invalid or expired code.");
+        showMsg("error", data.message || "Invalid or expired code.");
       }
-    } catch {
-      showMsg("error", "Network error while verifying code.");
+    } catch (err) {
+      console.error(err);
+      showMsg("error", err.message || "Network error while verifying code.");
     } finally {
       setVerifying(false);
     }
@@ -340,7 +333,7 @@ export default function Login() {
                     <label>Admin or Staff Username</label>
                     <input
                       type="text"
-                      placeholder='admin or staff@dlsud.edu.ph'
+                      placeholder="admin or staff@dlsud.edu.ph"
                       value={adminUser}
                       onChange={(e) => setAdminUser(e.target.value)}
                     />
@@ -350,7 +343,7 @@ export default function Login() {
                     <label>Password</label>
                     <input
                       type="password"
-                      placeholder='admin or staff123'
+                      placeholder="admin or staff123"
                       value={adminPass}
                       onChange={(e) => setAdminPass(e.target.value)}
                     />

@@ -1,41 +1,26 @@
-import { getCurrentUser, logout } from "./auth";
+// src/api.js
 
-const BASE_URL = "http://localhost:3000";
+const API_BASE = "http://localhost:3000";
 
-async function request(path, { method = "GET", headers = {}, body } = {}) {
-  const user = getCurrentUser();
-  const token = user?.token; // if you have a real token, store it in currentUser.token
-
-  const res = await fetch(`${BASE_URL}${path}`, {
+async function request(method, path, body) {
+  const res = await fetch(`${API_BASE}${path}`, {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-    body,
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
   });
 
-    // Force-redirect on 401 or 403
-  if (res.status === 401 || res.status === 403) {
-    logout();
-    // hard redirect so it always works outside React as well
-    window.location.replace("/login");
-    throw new Error("Unauthorized");
+  let data = null;
+  try {
+    data = await res.json();
+  } catch (err) {
+    console.error("Failed to parse JSON:", err);
   }
 
-  // try to parse JSON if available
-  const text = await res.text();
-  try {
-    return text ? JSON.parse(text) : {};
-  } catch {
-    return text;
-  }
+  return data;
 }
 
-export const api = {
-  get: (path) => request(path),
-  post: (path, data) => request(path, { method: "POST", body: JSON.stringify(data) }),
-  put: (path, data) => request(path, { method: "PUT", body: JSON.stringify(data) }),
-  del: (path) => request(path, { method: "DELETE" }),
+const api = {
+  post: (path, body) => request("POST", path, body),
 };
+
+export default api;
