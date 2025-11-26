@@ -69,9 +69,9 @@ function Report() {
   const fetchReports = async () => {
     try {
       setLoadError("");
-      const res = await fetch(`${API_BASE}/api/reports`);
+      const res = await fetch("http://localhost:3000/api/reports");
       const data = await res.json().catch(() => null);
-
+      
       let list = [];
 
       if (Array.isArray(data)) {
@@ -312,7 +312,7 @@ function Report() {
     try {
       setSaving(true);
       const res = await fetch(
-        `${API_BASE}/api/reports/${selectedReport._id}`,
+        `${API_BASE}/api/ReportCollection/${selectedReport._id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
