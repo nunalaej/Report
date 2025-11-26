@@ -4,6 +4,14 @@ import "./report.css";
 import defaultImg from "/default.jpg";
 import Navigation from "../Navigation.jsx"; // adjust the path if needed
 
+// Backend base URL
+// - Dev: fallback to http://localhost:3000
+// - Prod: set VITE_API_BASE_URL to your deployed backend URL (no trailing slash)
+const API_BASE =
+  (import.meta.env.VITE_API_BASE_URL &&
+    import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")) ||
+  "";
+
 // Helper formatters
 const formatConcern = (report) => {
   const base = report.concern || "Unspecified";
@@ -40,6 +48,8 @@ function Report() {
   const [commentText, setCommentText] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [loadError, setLoadError] = useState("");
+
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -58,11 +68,28 @@ function Report() {
 
   const fetchReports = async () => {
     try {
-      const res = await fetch("http://localhost:3000/api/reports");
-      const data = await res.json();
-      setReports(data);
+      setLoadError("");
+      const res = await fetch(`${API_BASE}/api/reports`);
+      const data = await res.json().catch(() => null);
+
+      let list = [];
+
+      if (Array.isArray(data)) {
+        list = data;
+      } else if (data && Array.isArray(data.reports)) {
+        list = data.reports;
+      } else if (data && Array.isArray(data.data)) {
+        list = data.data;
+      } else {
+        console.warn("Unexpected /api/reports payload:", data);
+        setLoadError("Could not load reports. Check the server response.");
+      }
+
+      setReports(list);
     } catch (err) {
       console.error("Error fetching reports:", err);
+      setLoadError("Network error while loading reports.");
+      setReports([]);
     }
   };
 
@@ -141,11 +168,12 @@ function Report() {
     "All Buildings",
     ...new Set(
       reports
-        .filter((r) =>
-          (concernFilter === "All Concerns" || r.concern === concernFilter) &&
-          (collegeFilter === "All Colleges" ||
-            (r.college || "Unspecified") === collegeFilter) &&
-          statusMatchesFilter(r.status)
+        .filter(
+          (r) =>
+            (concernFilter === "All Concerns" || r.concern === concernFilter) &&
+            (collegeFilter === "All Colleges" ||
+              (r.college || "Unspecified") === collegeFilter) &&
+            statusMatchesFilter(r.status)
         )
         .map((r) => r.building)
         .filter(Boolean)
@@ -157,11 +185,12 @@ function Report() {
     "All Concerns",
     ...new Set(
       reports
-        .filter((r) =>
-          (buildingFilter === "All Buildings" || r.building === buildingFilter) &&
-          (collegeFilter === "All Colleges" ||
-            (r.college || "Unspecified") === collegeFilter) &&
-          statusMatchesFilter(r.status)
+        .filter(
+          (r) =>
+            (buildingFilter === "All Buildings" || r.building === buildingFilter) &&
+            (collegeFilter === "All Colleges" ||
+              (r.college || "Unspecified") === collegeFilter) &&
+            statusMatchesFilter(r.status)
         )
         .map((r) => r.concern)
         .filter(Boolean)
@@ -173,10 +202,11 @@ function Report() {
     "All Colleges",
     ...new Set(
       reports
-        .filter((r) =>
-          (buildingFilter === "All Buildings" || r.building === buildingFilter) &&
-          (concernFilter === "All Concerns" || r.concern === concernFilter) &&
-          statusMatchesFilter(r.status)
+        .filter(
+          (r) =>
+            (buildingFilter === "All Buildings" || r.building === buildingFilter) &&
+            (concernFilter === "All Concerns" || r.concern === concernFilter) &&
+            statusMatchesFilter(r.status)
         )
         .map((r) => r.college || "Unspecified")
     ),
@@ -194,11 +224,12 @@ function Report() {
   useEffect(() => {
     const validConcerns = new Set(
       reports
-        .filter((r) =>
-          (buildingFilter === "All Buildings" || r.building === buildingFilter) &&
-          (collegeFilter === "All Colleges" ||
-            (r.college || "Unspecified") === collegeFilter) &&
-          statusMatchesFilter(r.status)
+        .filter(
+          (r) =>
+            (buildingFilter === "All Buildings" || r.building === buildingFilter) &&
+            (collegeFilter === "All Colleges" ||
+              (r.college || "Unspecified") === collegeFilter) &&
+            statusMatchesFilter(r.status)
         )
         .map((r) => r.concern)
     );
@@ -212,11 +243,12 @@ function Report() {
   useEffect(() => {
     const validBuildings = new Set(
       reports
-        .filter((r) =>
-          (concernFilter === "All Concerns" || r.concern === concernFilter) &&
-          (collegeFilter === "All Colleges" ||
-            (r.college || "Unspecified") === collegeFilter) &&
-          statusMatchesFilter(r.status)
+        .filter(
+          (r) =>
+            (concernFilter === "All Concerns" || r.concern === concernFilter) &&
+            (collegeFilter === "All Colleges" ||
+              (r.college || "Unspecified") === collegeFilter) &&
+            statusMatchesFilter(r.status)
         )
         .map((r) => r.building)
     );
@@ -280,7 +312,7 @@ function Report() {
     try {
       setSaving(true);
       const res = await fetch(
-        `http://localhost:3000/api/reports/${selectedReport._id}`,
+        `${API_BASE}/api/reports/${selectedReport._id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -319,7 +351,7 @@ function Report() {
     try {
       setSaving(true);
       const res = await fetch(
-        `http://localhost:3000/api/reports/${selectedReport._id}`,
+        `${API_BASE}/api/reports/${selectedReport._id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -368,161 +400,161 @@ function Report() {
 
   // PRINT FUNCTION: print whatever is currently filtered
   const handlePrintCollegeReports = () => {
-  const reportsToPrint = filteredReports;
+    const reportsToPrint = filteredReports;
 
-  if (reportsToPrint.length === 0) {
-    alert("No reports to print for the current filters.");
-    return;
-  }
+    if (reportsToPrint.length === 0) {
+      alert("No reports to print for the current filters.");
+      return;
+    }
 
-  // Build groups of similar reports
-  const groupMap = {};
-  reports.forEach((r) => {
-    const key = `${r.building}-${r.concern}`;
-    if (!groupMap[key]) groupMap[key] = [];
-    groupMap[key].push(r);
-  });
+    // Build groups of similar reports
+    const groupMap = {};
+    reports.forEach((r) => {
+      const key = `${r.building}-${r.concern}`;
+      if (!groupMap[key]) groupMap[key] = [];
+      groupMap[key].push(r);
+    });
 
-  const printWindow = window.open("", "_blank");
+    const printWindow = window.open("", "_blank");
 
-  const filterSummary = `
-    Building: ${buildingFilter}, Concern: ${concernFilter}, College: ${collegeFilter}, Status: ${statusFilter}
-  `;
+    const filterSummary = `
+      Building: ${buildingFilter}, Concern: ${concernFilter}, College: ${collegeFilter}, Status: ${statusFilter}
+    `;
 
-  const html = `
-    <html>
-      <head>
-        <title>Filtered Reports</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            line-height: 1.5;
-          }
+    const html = `
+      <html>
+        <head>
+          <title>Filtered Reports</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              line-height: 1.5;
+            }
 
-          h1 {
-            text-align: center;
-            margin-bottom: 10px;
-          }
+            h1 {
+              text-align: center;
+              margin-bottom: 10px;
+            }
 
-          .filters-summary {
-            text-align: center;
-            font-size: 12px;
-            color: #555;
-            margin-bottom: 20px;
-          }
+            .filters-summary {
+              text-align: center;
+              font-size: 12px;
+              color: #555;
+              margin-bottom: 20px;
+            }
 
-          .page {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(2, auto);
-            gap: 20px;
-            margin-bottom: 50px;
-            page-break-after: always;
-          }
-
-          .report {
-            border: 1px solid #000;
-            border-radius: 8px;
-            padding: 12px;
-            background: #fff;
-          }
-
-          .square-img {
-            width: 250px;
-            height: 120px;
-            object-fit: cover;
-            display: block;
-            margin: 10px auto;
-            border-radius: 6px;
-            border: 1px solid #999;
-          }
-
-          .similar-block {
-            margin-top: 8px;
-            font-size: 12px;
-            color: #222;
-          }
-
-          .similar-block ul {
-            margin: 4px 0 0;
-            padding-left: 16px;
-          }
-
-          @media print {
             .page {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              grid-template-rows: repeat(2, auto);
+              gap: 20px;
+              margin-bottom: 50px;
               page-break-after: always;
             }
+
             .report {
-              page-break-inside: avoid;
+              border: 1px solid #000;
+              border-radius: 8px;
+              padding: 12px;
+              background: #fff;
             }
-          }
-        </style>
-      </head>
-      <body>
-        <h1>Filtered Reports</h1>
-        <div class="filters-summary">${filterSummary}</div>
 
-        ${(() => {
-          let pages = "";
-          for (let i = 0; i < reportsToPrint.length; i += 4) {
-            const chunk = reportsToPrint.slice(i, i + 4);
-            pages += `
-              <div class="page">
-                ${chunk
-                  .map((r) => {
-                    const key = `${r.building}-${r.concern}`;
-                    const group = groupMap[key] || [];
-                    const similar = group.filter((x) => x._id !== r._id);
+            .square-img {
+              width: 250px;
+              height: 120px;
+              object-fit: cover;
+              display: block;
+              margin: 10px auto;
+              border-radius: 6px;
+              border: 1px solid #999;
+            }
 
-                    const similarHtml =
-                      similar.length > 0
-                        ? `
-                          <div class="similar-block">
-                            <strong>${similar.length} similar ${
-                            similar.length === 1 ? "report" : "reports"
-                          }</strong>
-                          </div>`
-                        : "";
+            .similar-block {
+              margin-top: 8px;
+              font-size: 12px;
+              color: #222;
+            }
 
-                    return `
-                      <div class="report">
-                        <h3>${r.heading || "Untitled Report"}</h3>
+            .similar-block ul {
+              margin: 4px 0 0;
+              padding-left: 16px;
+            }
 
-                        <p><strong>Building:</strong> ${formatBuilding(r)}</p>
-                        <p><strong>Concern:</strong> ${formatConcern(r)}</p>
-                        <p><strong>College:</strong> ${r.college || "Unspecified"}</p>
+            @media print {
+              .page {
+                page-break-after: always;
+              }
+              .report {
+                page-break-inside: avoid;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Filtered Reports</h1>
+          <div class="filters-summary">${filterSummary}</div>
 
-                        ${
-                          r.image
-                            ? `<img class="square-img" src="http://localhost:3000${r.image}" />`
-                            : ""
-                        }
+          ${(() => {
+            let pages = "";
+            for (let i = 0; i < reportsToPrint.length; i += 4) {
+              const chunk = reportsToPrint.slice(i, i + 4);
+              pages += `
+                <div class="page">
+                  ${chunk
+                    .map((r) => {
+                      const key = `${r.building}-${r.concern}`;
+                      const group = groupMap[key] || [];
+                      const similar = group.filter((x) => x._id !== r._id);
 
-                        ${similarHtml}
+                      const similarHtml =
+                        similar.length > 0
+                          ? `
+                            <div class="similar-block">
+                              <strong>${similar.length} similar ${
+                                similar.length === 1 ? "report" : "reports"
+                              }</strong>
+                            </div>`
+                          : "";
 
-                        <p><strong>Description:</strong><br>${r.description || ""}</p>
-                      </div>
-                    `;
-                  })
-                  .join("")}
-              </div>
-            `;
-          }
-          return pages;
-        })()}
-      </body>
-    </html>
-  `;
+                      return `
+                        <div class="report">
+                          <h3>${r.heading || "Untitled Report"}</h3>
 
-  printWindow.document.write(html);
-  printWindow.document.close();
+                          <p><strong>Building:</strong> ${formatBuilding(r)}</p>
+                          <p><strong>Concern:</strong> ${formatConcern(r)}</p>
+                          <p><strong>College:</strong> ${r.college || "Unspecified"}</p>
 
-  setTimeout(() => {
-    printWindow.print();
-    printWindow.close();
-  }, 300);
-};
+                          ${
+                            r.image
+                              ? `<img class="square-img" src="${API_BASE}${r.image}" />`
+                              : ""
+                          }
+
+                          ${similarHtml}
+
+                          <p><strong>Description:</strong><br>${r.description || ""}</p>
+                        </div>
+                      `;
+                    })
+                    .join("")}
+                </div>
+              `;
+            }
+            return pages;
+          })()}
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 300);
+  };
 
   return (
     <>
@@ -547,6 +579,16 @@ function Report() {
             </button>
           </div>
         </div>
+
+        {/* Load error, if any */}
+        {loadError && (
+          <div className="load-error-banner">
+            {loadError}{" "}
+            <button type="button" onClick={fetchReports}>
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Filters card */}
         <div className="filters-card">
@@ -643,160 +685,168 @@ function Report() {
           )}
         </div>
 
+        {/* If there are no reports after filters */}
+        {filteredReports.length === 0 && !loadError && (
+          <p className="no-reports-msg">
+            No reports found for the current filters. Try submitting a report or
+            clearing filters.
+          </p>
+        )}
+
         {/* Report list */}
-        {selectedGroup ? (
-          <div className="reports-list">
-            <div className="group-header">
-              <h2>
-                Similar reports for <em>{selectedGroup}</em>
-              </h2>
-            <button
-              onClick={() => setSelectedGroup(null)}
-              className="back-btn"
-              type="button"
-            >
-              Back
-            </button>
-            </div>
-
-            {getReportsByGroup(selectedGroup).map((report) => {
-              const statusKey = getStatusClassKey(report.status);
-
-              return (
-                <div
-                  key={report._id}
-                  className="report"
-                  onClick={() => handleCardClick(report)}
-                >
-                  <div className="report-img-container">
-                    <img
-                      src={
-                        report.image
-                          ? `http://localhost:3000${report.image}`
-                          : defaultImg
-                      }
-                      alt="Report"
-                      className="report-img"
-                      onError={(e) => {
-                        e.target.src = defaultImg;
-                      }}
-                    />
-                  </div>
-                  <div className="report-body">
-                    <div className="report-header-row">
-                      <h3>{report.heading || "Untitled report"}</h3>
-                    </div>
-
-                    <div
-                      className={`status-focus-row status-focus-${statusKey}`}
-                    >
-                      <span className="status-focus-label">Status</span>
-                      {renderStatusPill(report.status)}
-                    </div>
-
-                    <p className="report-description">
-                      {report.description || "No description provided."}
-                    </p>
-
-                    <div className="report-info">
-                      <p>
-                        <strong>Building:</strong> {formatBuilding(report)}
-                      </p>
-                      <p>
-                        <strong>Concern:</strong> {formatConcern(report)}
-                      </p>
-                      <p>
-                        <strong>College:</strong>{" "}
-                        {report.college || "Unspecified"}
-                      </p>
-                    </div>
-                    <p className="submitted-date">
-                      {new Date(report.createdAt).toLocaleDateString()} (
-                      {getRelativeTime(report.createdAt)})
-                    </p>
-                  </div>
+        {filteredReports.length > 0 && (
+          <>
+            {selectedGroup ? (
+              <div className="reports-list">
+                <div className="group-header">
+                  <h2>
+                    Similar reports for <em>{selectedGroup}</em>
+                  </h2>
+                  <button
+                    onClick={() => setSelectedGroup(null)}
+                    className="back-btn"
+                    type="button"
+                  >
+                    Back
+                  </button>
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="reports-list">
-            {filteredReports.map((report) => {
-              const key = `${report.building}-${report.concern}`;
-              const duplicates = (duplicateCounts[key] || 1) - 1;
-              const statusKey = getStatusClassKey(report.status);
 
-              return (
-                <div
-                  key={report._id}
-                  className="report"
-                  onClick={() => handleCardClick(report)}
-                >
-                  <div className="report-img-container">
-                    <img
-                      src={
-                        report.image
-                          ? `http://localhost:3000${report.image}`
-                          : defaultImg
-                      }
-                      alt="Report"
-                      className="report-img"
-                      onError={(e) => {
-                        e.target.src = defaultImg;
-                      }}
-                    />
-                  </div>
-                  <div className="report-body">
-                    <div className="report-header-row">
-                      <h3>{report.heading || "Untitled report"}</h3>
-                    </div>
+                {getReportsByGroup(selectedGroup).map((report) => {
+                  const statusKey = getStatusClassKey(report.status);
 
+                  return (
                     <div
-                      className={`status-focus-row status-focus-${statusKey}`}
+                      key={report._id}
+                      className="report"
+                      onClick={() => handleCardClick(report)}
                     >
-                      <span className="status-focus-label">Status</span>
-                      {renderStatusPill(report.status)}
+                      <div className="report-img-container">
+                        <img
+                          src={report.image ? `${API_BASE}${report.image}` : defaultImg}
+                          alt="Report"
+                          className="report-img"
+                          onError={(e) => {
+                            e.target.src = defaultImg;
+                          }}
+                        />
+                      </div>
+                      <div className="report-body">
+                        <div className="report-header-row">
+                          <h3>{report.heading || "Untitled report"}</h3>
+                        </div>
+
+                        <div
+                          className={`status-focus-row status-focus-${statusKey}`}
+                        >
+                          <span className="status-focus-label">Status</span>
+                          {renderStatusPill(report.status)}
+                        </div>
+
+                        <p className="report-description">
+                          {report.description || "No description provided."}
+                        </p>
+
+                        <div className="report-info">
+                          <p>
+                            <strong>Building:</strong> {formatBuilding(report)}
+                          </p>
+                          <p>
+                            <strong>Concern:</strong> {formatConcern(report)}
+                          </p>
+                          <p>
+                            <strong>College:</strong>{" "}
+                            {report.college || "Unspecified"}
+                          </p>
+                        </div>
+                        <p className="submitted-date">
+                          {new Date(report.createdAt).toLocaleDateString()} (
+                          {getRelativeTime(report.createdAt)})
+                        </p>
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="reports-list">
+                {filteredReports.map((report) => {
+                  const key = `${report.building}-${report.concern}`;
+                  const duplicates = (duplicateCounts[key] || 1) - 1;
+                  const statusKey = getStatusClassKey(report.status);
 
-                    <p className="report-description">
-                      {report.description || "No description provided."}
-                    </p>
+                  return (
+                    <div
+                      key={report._id}
+                      className="report"
+                      onClick={() => handleCardClick(report)}
+                    >
+                      <div className="report-img-container">
+                        <img
+                          src={
+                            report.image
+                              ? `${API_BASE}${report.image}`
+                              : defaultImg
+                          }
+                          alt="Report"
+                          className="report-img"
+                          onError={(e) => {
+                            e.target.src = defaultImg;
+                          }}
+                        />
+                      </div>
+                      <div className="report-body">
+                        <div className="report-header-row">
+                          <h3>{report.heading || "Untitled report"}</h3>
+                        </div>
 
-                    <div className="report-info">
-                      <p>
-                        <strong>Building:</strong> {formatBuilding(report)}
-                      </p>
-                      <p>
-                        <strong>Concern:</strong> {formatConcern(report)}
-                      </p>
-                      <p>
-                        <strong>College:</strong>{" "}
-                        {report.college || "Unspecified"}
-                      </p>
+                        <div
+                          className={`status-focus-row status-focus-${statusKey}`}
+                        >
+                          <span className="status-focus-label">Status</span>
+                          {renderStatusPill(report.status)}
+                        </div>
+
+                        <p className="report-description">
+                          {report.description || "No description provided."}
+                        </p>
+
+                        <div className="report-info">
+                          <p>
+                            <strong>Building:</strong> {formatBuilding(report)}
+                          </p>
+                          <p>
+                            <strong>Concern:</strong> {formatConcern(report)}
+                          </p>
+                          <p>
+                            <strong>College:</strong>{" "}
+                            {report.college || "Unspecified"}
+                          </p>
+                        </div>
+
+                        <p className="submitted-date">
+                          {new Date(report.createdAt).toLocaleDateString()} (
+                          {getRelativeTime(report.createdAt)})
+                        </p>
+
+                        {!showDuplicates && duplicates > 0 && (
+                          <p
+                            className="duplicate-msg"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedGroup(key);
+                            }}
+                          >
+                            Similar type of report: ({duplicates}{" "}
+                            {duplicates === 1 ? "report" : "reports"})
+                          </p>
+                        )}
+                      </div>
                     </div>
-
-                    <p className="submitted-date">
-                      {new Date(report.createdAt).toLocaleDateString()} (
-                      {getRelativeTime(report.createdAt)})
-                    </p>
-
-                    {!showDuplicates && duplicates > 0 && (
-                      <p
-                        className="duplicate-msg"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedGroup(key);
-                        }}
-                      >
-                        Similar type of report: ({duplicates}{" "}
-                        {duplicates === 1 ? "report" : "reports"})
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
 
         {/* Details modal */}
@@ -825,7 +875,7 @@ function Report() {
                   <img
                     src={
                       selectedReport.image
-                        ? `http://localhost:3000${selectedReport.image}`
+                        ? `${API_BASE}${selectedReport.image}`
                         : defaultImg
                     }
                     alt="Report"
@@ -970,3 +1020,4 @@ function Report() {
 }
 
 export default Report;
+ 

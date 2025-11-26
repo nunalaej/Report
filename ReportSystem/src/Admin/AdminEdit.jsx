@@ -48,6 +48,24 @@ const DEFAULT_CONCERNS = [
   },
 ];
 
+/**
+ * API base:
+ * - In production, set VITE_API_BASE_URL to your deployed server root, like:
+ *     VITE_API_BASE_URL=https://your-bfmo-api.onrender.com
+ * - In dev, you can leave it empty and use Vite proxy to /api
+ */
+const RAW_BASE = import.meta.env.VITE_API_BASE_URL || "";
+const TRIMMED_BASE = RAW_BASE.replace(/\/+$/, "");
+const API_BASE = TRIMMED_BASE; // "" if not set
+
+// Final endpoint
+// - If API_BASE is set: https://your-api.com/api/meta
+// - Else: /api/meta (hits same origin or Vite proxy)
+const META_URL = API_BASE ? `${API_BASE}/api/meta` : "/api/meta";
+
+// helper with lowercase for case-insensitive search/sort
+const norm = (v) => (v == null ? "" : String(v).trim().toLowerCase());
+
 // Reusable panel like in create.jsx
 function Panel({ title, subtitle, actions, children }) {
   return (
@@ -72,10 +90,6 @@ function Panel({ title, subtitle, actions, children }) {
   );
 }
 
-// helper with lowercase for case-insensitive search/sort
-const norm = (v) =>
-  v == null ? "" : String(v).trim().toLowerCase();
-
 export default function AdminEdit() {
   const [buildings, setBuildings] = useState(DEFAULT_BUILDINGS);
   const [concerns, setConcerns] = useState(DEFAULT_CONCERNS);
@@ -86,21 +100,25 @@ export default function AdminEdit() {
   const [searchBuilding, setSearchBuilding] = useState("");
   const [searchConcern, setSearchConcern] = useState("");
 
-  // Change this to match your backend route if needed
-  const META_URL = "http://localhost:3000/api/meta";
-
+  // ============ LOAD META FROM BACKEND ============
   useEffect(() => {
     let alive = true;
 
     async function loadMeta() {
       setLoading(true);
       setError("");
+      console.log("[AdminEdit] Fetch meta from:", META_URL);
+
       try {
         const res = await fetch(META_URL, { credentials: "omit" });
         if (!res.ok) {
+          const raw = await res.text().catch(() => "");
+          console.error("Meta load failed:", res.status, raw);
           throw new Error(`Failed to load options. Status ${res.status}`);
         }
+
         const data = await res.json();
+        console.log("[AdminEdit] Meta response:", data);
 
         if (!alive) return;
 
@@ -134,8 +152,9 @@ export default function AdminEdit() {
     return () => {
       alive = false;
     };
-  }, [META_URL]);
+  }, []);
 
+  // ============ SAVE META TO BACKEND ============
   async function handleSave() {
     setSaving(true);
     setError("");
@@ -146,8 +165,6 @@ export default function AdminEdit() {
         .map((b) => (b ?? "").trim())
         .filter((b) => b.length > 0)
         .sort((a, b) => a.localeCompare(b)),
-
-      // IDs are internal; we auto-generate from label
       concerns: concerns
         .map((c) => {
           const cleanLabel = (c.label ?? "").trim();
@@ -167,6 +184,8 @@ export default function AdminEdit() {
         .filter(Boolean),
     };
 
+    console.log("[AdminEdit] Saving meta to:", META_URL, payload);
+
     try {
       const res = await fetch(META_URL, {
         method: "PUT",
@@ -177,10 +196,13 @@ export default function AdminEdit() {
 
       if (!res.ok) {
         const raw = await res.text().catch(() => "");
+        console.error("Meta save failed:", res.status, raw);
         throw new Error(raw || `Failed to save. Status ${res.status}`);
       }
 
       const data = await res.json().catch(() => null);
+      console.log("[AdminEdit] Save response:", data);
+
       if (data && data.buildings && data.concerns) {
         setBuildings(data.buildings);
         setConcerns(data.concerns);
@@ -195,7 +217,7 @@ export default function AdminEdit() {
     }
   }
 
-  // Building handlers
+  // ============ BUILDING HANDLERS ============
   function handleBuildingChange(index, value) {
     setBuildings((prev) => {
       const next = [...prev];
@@ -212,7 +234,7 @@ export default function AdminEdit() {
     setBuildings((prev) => prev.filter((_, i) => i !== index));
   }
 
-  // Concern handlers
+  // ============ CONCERN HANDLERS ============
   function handleConcernLabelChange(index, value) {
     setConcerns((prev) =>
       prev.map((c, i) => (i === index ? { ...c, label: value } : c))
@@ -234,7 +256,7 @@ export default function AdminEdit() {
     setConcerns((prev) => prev.filter((_, i) => i !== index));
   }
 
-  // Subconcern handlers
+  // ============ SUBCONCERN HANDLERS ============
   function handleSubconcernChange(concernIndex, subIndex, value) {
     setConcerns((prev) =>
       prev.map((c, ci) => {
@@ -267,7 +289,7 @@ export default function AdminEdit() {
     );
   }
 
-  // Alphabetical + search for buildings
+  // ============ SORT + SEARCH ============
   const buildingRows = useMemo(() => {
     const term = norm(searchBuilding);
     return buildings
@@ -276,7 +298,6 @@ export default function AdminEdit() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [buildings, searchBuilding]);
 
-  // Alphabetical + search for concerns
   const concernRows = useMemo(() => {
     const term = norm(searchConcern);
     return concerns
@@ -285,6 +306,7 @@ export default function AdminEdit() {
       .sort((a, b) => a.concern.label.localeCompare(b.concern.label));
   }, [concerns, searchConcern]);
 
+  // ============ UI ============
   return (
     <div className="create-scope admin-edit">
       <Navigation />
