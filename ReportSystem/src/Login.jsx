@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Login.css";
-import api from "./apI"; // <-- ADD THIS
+import api from "./api"; // <-- ADD THIS
 
 export default function Login() {
   const navigate = useNavigate();
